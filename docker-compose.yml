@@ -1,0 +1,53 @@
+version: '3.0'
+services:
+  chameleon:
+    build: .
+    entrypoint: '/app/docker/chameleon/entrypoint.sh'
+    command: tail -f /dev/null
+    working_dir: /app
+    volumes:
+      - .:/app:cached
+    environment:
+      PYTHONUNBUFFERED: 1
+      PYTHONPATH: /app/application
+      DEST_HOSTNAME: postgres
+      DEST_PORT: 5432
+      DEST_DATABASE: dest_db
+      DEST_USER: root
+      DEST_PASSWORD: docker
+      SOURCE_DB_HOSTNAME: mysql
+      SOURCE_DB_PORT: 3306
+      SOURCE_DB_DATABASE: source_db
+      SOURCE_DB_USER: docker
+      SOURCE_DB_PASSWORD: docker
+    links:
+      - mysql
+      - postgres
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=docker
+      - MYSQL_PASSWORD=docker
+      - MYSQL_USER=docker
+      - MYSQL_DATABASE=source_db
+      - MYSQL_ROOT_PASSWORD=root
+    volumes:
+      - ch_mysql_storage:/var/lib/mysql
+      - ./docker/mysql/conf.d:/etc/mysql/conf.d:ro
+
+  postgres:
+    image: postgres:11.1-alpine
+    command: postgres -c config_file=/etc/postgresql.conf
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=docker
+      - POSTGRES_DB=dest_db
+    volumes:
+      - ch_postgres_storage:/var/lib/postgresql/data
+      - ./docker/postgres/postgresql.conf:/etc/postgresql.conf:ro
+
+volumes:
+  ch_mysql_storage:
+  ch_postgres_storage:
+
